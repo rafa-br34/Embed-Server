@@ -1,0 +1,20 @@
+{
+	"name": "discord-embed-server",
+	"author": "rafa_br34",
+	"license": "MIT",
+	"version": "0.0.1",
+	"description": "",
+	"main": "SOURCE/Main.js",
+	"type": "module",
+	"scripts": {
+		"start": "node SOURCE/Main.js"
+	},
+	"dependencies": {
+		"chalk": "^5.3.0",
+		"express": "^4.18.2",
+		"squirrelly": "^9.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.9.2"
+	}
+}
