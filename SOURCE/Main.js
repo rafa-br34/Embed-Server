@@ -49,7 +49,7 @@ async function Main() {
 	
 	c_Logger.Info("Loading configs...")
 	g_Config = m_Configs.LoadConfig(RelativeFile(g_Config.Base, g_Config.Config))
-	c_Logger.Output(`Loaded:\n${JSON.stringify(g_Config, null, 3)}\n`)
+	c_Logger.Output(`Loaded config:\n${JSON.stringify(g_Config, null, 3)}\n`)
 
 	c_Logger.Info("Setting up files...")
 	await SetupFiles()
@@ -60,11 +60,10 @@ async function Main() {
 		c_Logger.Log(`(${Socket.localAddress}::${Socket.localPort} <=> ${Socket.remoteAddress}::${Socket.remotePort}) -> ${Request.method} ${Request.url}\nHeaders: ${JSON.stringify(Request.headers, null, 3)}`)
 		NextHandler()
 	})
-	
 
 	// Embedded media
 	Application.get("/:*", (Request, Response) => {
-	c_Logger.Log(`Serving media "${Request.path}"`)
+		c_Logger.Log(`Serving media "${Request.path}"`)
 	})
 	
 	// Raw media
@@ -109,6 +108,7 @@ async function Main() {
 	Application.listen(g_Config.Port, () => {
 		c_Logger.Info(`Listening on port ${g_Config.Port}`)
 	})
+
 
 
 	process.on("SIGINT", () => {

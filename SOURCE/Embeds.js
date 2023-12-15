@@ -3,22 +3,25 @@ import fs from "fs"
 
 import m_Logging from "./Logging"
 
+
 const EmbedFlags = Object.freeze({
-	
+	AUTOMATIC_COLORING: 1,
+
 })
 
 class Embed {
+	Content = ""
 	Author = ""
+	Title = ""
 	Type = ""
 	Size = 0
 
+	Source = ""
 	Pallette = []
 
-	constructor(Object) {
-		if (typeof(Object) == "object") {
-			this.Author = Object.Author
-			this.Type = Object.Type
-			this.Size = Object.Size
+	constructor(Obj) {
+		if (typeof(Obj) == "object") {
+			
 		}
 	}
 
@@ -66,5 +69,5 @@ class EmbedManager {
 
 	ClearEmbeds() {}
 
-	AddEmbed()
+	AddEmbed() {}
 }
