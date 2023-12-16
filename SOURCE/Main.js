@@ -1,12 +1,16 @@
-import express from "express"
+import * as squirrelly from "squirrelly"
+//import squirrelly from "squirrelly"
+import express, { response } from "express"
 import process from "process"
-import https from "https"
+// import https from "https"
+// import http from "http"
 import path from "path"
 import url from "url"
 import fs from "fs"
 
 import m_Configs from "./Configs.js"
 import m_Logging from "./Logging.js"
+import m_Embeds from "./Embeds.js"
 
 
 const __filename = url.fileURLToPath(import.meta.url)
@@ -54,6 +58,34 @@ async function Main() {
 	c_Logger.Info("Setting up files...")
 	await SetupFiles()
 
+	let IndexEmbed = new m_Embeds.Embed({
+		Thumbnail: {
+			Height: 600,
+			Width: 1200,
+			Link: `https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`
+		},
+		Content: {
+			Height: 600,
+			Width: 1200,
+			Link: `https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`
+		},
+		Provider: {
+			Name: `(MIT License) Copyright © ${(new Date()).getFullYear()} rafa_br34`,
+			Link: "https://github.com/rafa-br34"
+		},
+		Author: {
+			Name: "GitHub Repository",
+			Link: "https://github.com/rafa-br34/Embed-Server"
+		},
+
+		Title: "Open Source Embed Server",
+
+		Type: {
+			"oEmbed": "photo",
+			"OGP": ""
+		}
+	})
+
 	// @note This should always be the first middleware
 	Application.use((Request, Result, NextHandler) => {
 		let Socket = Request.socket
@@ -72,28 +104,44 @@ async function Main() {
 	})
 	
 	// API
-	Application.get("/api", (Request, Response) => {
-		Response.json(
+	Application.get("/api/oembed", (Request, Response) => {
+		Response.json(IndexEmbed.Build_oEmbed())
+		/*
 			{
+				"type":"rich",
+				"version":"1.0",
+
 				"title":"example title",
 				"author_name":"example author",
 				"author_url":"https://example-author-url.com",
-				"type":"video",
+				"provider_name":`(MIT License) Copyright © ${(new Date()).getFullYear()} rafa_br34`,
+				"provider_url":"https://github.com/rafa-br34",
+				"thumbnail_height":600,"thumbnail_width":1200,
+				"thumbnail_url":`https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`,
+
 				"height":113,"width":200,
-				"version":"1.0",
-				"provider_name":"example provider",
-				"provider_url":"https://example-provider-url.com/",
-				"thumbnail_height":360,"thumbnail_width":480,
-				"thumbnail_url":"example thumbnail url",
 				"html":"<p>example html</p>"
 			}
 		)
+		//*/
 	})
 	
 	// Static
+	Application.get("/", (Request, Response) => {
+		squirrelly.renderFile(
+			RelativeFile("Templates/IndexTemplate.html"),
+			{
+				Host: Request.headers.host || "",
+				Identifier: "",
+
+				Description: "Rendered description",
+				Title: "Rendered title",
+			}
+		).then((Result) => Response.send(Result))
+		//Response.sendFile(RelativeFile("Static/Index.html"))
+	})
 	Application.use(express.static(RelativeFile("Static/")))
-	Application.get("/*", (Request, Response) => { Response.redirect("/") })
-	Application.get("/", (Request, Response) => { Response.sendFile(RelativeFile("Static/Index.html")) })
+	Application.get("/*", (_Request, Response) => { Response.redirect("/") })
 
 
 	// @note This should always be the last middleware

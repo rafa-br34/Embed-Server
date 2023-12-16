@@ -1,7 +1,7 @@
 import path from "path"
 import fs from "fs"
 
-import m_Logging from "./Logging"
+import m_Logging from "./Logging.js"
 
 
 const EmbedFlags = Object.freeze({
@@ -9,23 +9,84 @@ const EmbedFlags = Object.freeze({
 
 })
 
+
+
 class Embed {
-	Content = ""
-	Author = ""
-	Title = ""
-	Type = ""
+	// Embed specific
+	Provider = { Name: "", Link: "" } // oEmbed
+	Author = { Name: "", Link: "" } // oEmbed
+	Title = "" // OGP, oEmbed
+
+	Thumbnail = { Height: 0, Width: 0, Link: ""} // OGP, oEmbed
+	Content = undefined
+
+	Type = {
+		oEmbed: "",
+		OGP: ""
+	}
+
+	FileType = ""
 	Size = 0
 
-	Source = ""
-	Pallette = []
+	// Others
+	Pallette = [] // Image
 
 	constructor(Obj) {
+		// From JSON
 		if (typeof(Obj) == "object") {
-			
+			for (let Key in Obj) { this[Key] = Obj[Key] }
 		}
 	}
 
+	Build_oEmbed() {
+		let Base = {
+			version: "1.0",
+			type: this.Type.oEmbed,
+			
+			thumbnail_height: this.Thumbnail.Height,
+			thumbnail_width: this.Thumbnail.Width,
+			thumbnail_url: this.Thumbnail.Link,
 
+			provider_name: this.Provider.Name,
+			provider_url: this.Provider.Link,
+			
+			author_name: this.Author.Name,
+			author_url: this.Author.Link,
+			
+			title: this.Title,
+		}
+
+		let Content = this.Content
+		let Extra = null
+		switch (this.Type.oEmbed) {
+			case "photo": {
+				Extra = {
+					height: Content.Height,
+					width: Content.Width,
+					url: Content.Link,
+				}
+				break
+			}
+
+			case "video":
+			case "rich": {
+				Extra = {
+					height: Content.Height,
+					width: Content.Width,
+					html: Content.Frame,
+				}
+				break
+			}
+
+			case "link":
+			default:
+				break;
+		}
+
+		return {...Base, ...Extra}
+	}
+
+	
 }
 
 class EmbedManager {
@@ -71,3 +132,5 @@ class EmbedManager {
 
 	AddEmbed() {}
 }
+
+export default { EmbedFlags, Embed, EmbedManager }
