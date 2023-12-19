@@ -128,16 +128,18 @@ async function Main() {
 	
 	// Static
 	Application.get("/", (Request, Response) => {
-		squirrelly.renderFile(
-			RelativeFile("Templates/IndexTemplate.html"),
+		let Result = squirrelly.render(
+			fs.readFileSync(RelativeFile("Templates/HeadTemplate.html"), "utf-8"),
 			{
-				Host: Request.headers.host || "",
-				Identifier: "",
+				oEmbedLink: `http://${Request.headers.host}/api/oembed?id=${"Identifier"}`,
 
 				Description: "Rendered description",
 				Title: "Rendered title",
-			}
-		).then((Result) => Response.send(Result))
+				MetaTags: IndexEmbed.BuildOGP()
+			},
+			{ autoEscape: false }
+		)
+		Response.send(`<!DOCTYPE html><html>${Result}<body>test</body></html>`)
 		//Response.sendFile(RelativeFile("Static/Index.html"))
 	})
 	Application.use(express.static(RelativeFile("Static/")))

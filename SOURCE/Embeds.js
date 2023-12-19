@@ -10,11 +10,24 @@ const EmbedFlags = Object.freeze({
 })
 
 
+function OGP_MetaTag(Property, Value) {
+	return `<meta property="${Property}" content="${Value}"/>`
+}
+
+function OGP_BuildTags(Tags) {
+	let Built = ""
+
+	for (let Key in Tags) if (Tags[Key]) Built += OGP_MetaTag(Key, Tags[Key])
+
+	return Built
+}
 
 class Embed {
 	// Embed specific
 	Provider = { Name: "", Link: "" } // oEmbed
 	Author = { Name: "", Link: "" } // oEmbed
+	
+	Description = "" // OGP
 	Title = "" // OGP, oEmbed
 
 	Thumbnail = { Height: 0, Width: 0, Link: ""} // OGP, oEmbed
@@ -25,16 +38,10 @@ class Embed {
 		OGP: ""
 	}
 
-	FileType = ""
-	Size = 0
-
-	// Others
-	Pallette = [] // Image
-
 	constructor(Obj) {
 		// From JSON
 		if (typeof(Obj) == "object") {
-			for (let Key in Obj) { this[Key] = Obj[Key] }
+			for (let Key in Obj) this[Key] = Obj[Key]
 		}
 	}
 
@@ -86,7 +93,34 @@ class Embed {
 		return {...Base, ...Extra}
 	}
 
-	
+	BuildOGP(EmbedLink) {
+		let Graph = {
+			// Required
+			"og:title": this.Title,
+			"og:type": this.Type.OGP,
+			"og:url": EmbedLink,
+
+			// Optional
+			"og:description": this.Description,
+			"og:site_name": this.Title,
+			// https://ogp.me/#optional
+
+			// Image (og:image is required, the rest is optional)
+			"og:image": this.Thumbnail.Link,
+			"og:image:alt": this.Description, // Should be the same as description(?)
+			"og:image:url": this.Thumbnail.Link,
+			"og:image:secure_url": this.Thumbnail.Link,
+			// "og:image:type": "image/*", // Let the consumer decide
+
+			"twitter:card": "summary_large_image",
+			"twitter:url": this.Provider.Link,
+			"twitter:description": this.Description,
+			"twitter:title": this.Title,
+			"twitter:image": this.Thumbnail.Link
+		}
+
+		return OGP_BuildTags(Graph)
+	}
 }
 
 class EmbedManager {
