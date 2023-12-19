@@ -35,7 +35,7 @@ function SyncWith(Data, Defaults=c_Defaults) {
 }
 
 function LoadConfig(File, Defaults=c_Defaults) {
-	return g_Loaded = SyncWith(JSON.parse(fs.readFileSync(File)), Defaults)
+	return g_Loaded = SyncWith(fs.existsSync(File) ? JSON.parse(fs.readFileSync(File)) : {}, Defaults)
 }
 
 function SaveConfig(File, Data=g_Loaded) {
