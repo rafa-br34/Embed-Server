@@ -2,8 +2,8 @@ import * as squirrelly from "squirrelly"
 //import squirrelly from "squirrelly"
 import express, { response } from "express"
 import process from "process"
-// import https from "https"
-// import http from "http"
+import https from "https"
+import http from "http"
 import path from "path"
 import url from "url"
 import fs from "fs"
@@ -47,6 +47,24 @@ async function SetupFiles() {
 	return {LogsFolder, ServingFolder, LogFile}
 }
 
+function HostApplication(Application) {
+	let Base = g_Config.Base
+	let Port = g_Config.Port
+	let SSL = g_Config.SSL
+
+	http.createServer(Application)
+		.listen(Port.HTTP, () => { c_Logger.Info(`HTTP: Listening on port ${Port.HTTP}`) })
+
+	let SSLPath = [ RelativeFile(Base, SSL.Key), RelativeFile(Base, SSL.Certificate) ]
+
+	if (SSLPath.find((Path) => !fs.existsSync(Path))) {
+		c_Logger.Warn("No SSL certificate and/or key found. HTTPS will not be enabled.")
+		return
+	}
+
+	https.createServer({ key: fs.readFileSync(SSLPath[0]), cert: fs.readFileSync(SSLPath[1]) }, Application)
+		.listen(Port.HTTPS, () => { c_Logger.Info(`HTTPS: Listening on port ${Port.HTTPS}`) })
+}
 
 async function Main() {
 	const Application = express()
@@ -155,11 +173,7 @@ async function Main() {
 		NextHandler()
 	})
 	
-	Application.listen(g_Config.Port, () => {
-		c_Logger.Info(`Listening on port ${g_Config.Port}`)
-	})
-
-
+	HostApplication(Application)
 
 	process.on("SIGINT", () => {
 		c_Logger.Warn("SIGINT Received, terminating...")

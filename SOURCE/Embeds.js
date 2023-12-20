@@ -38,6 +38,8 @@ class Embed {
 		OGP: ""
 	}
 
+	ThemeColor = "" // Other
+
 	constructor(Obj) {
 		// From JSON
 		if (typeof(Obj) == "object") {
@@ -103,7 +105,7 @@ class Embed {
 			// Optional
 			"og:description": this.Description,
 			"og:site_name": this.Title,
-			// https://ogp.me/#optional
+			// @note More tags at: https://ogp.me/#optional
 
 			// Image (og:image is required, the rest is optional)
 			"og:image": this.Thumbnail.Link,
@@ -112,14 +114,20 @@ class Embed {
 			"og:image:secure_url": this.Thumbnail.Link,
 			// "og:image:type": "image/*", // Let the consumer decide
 
-			"twitter:card": "summary_large_image",
 			"twitter:url": this.Provider.Link,
-			"twitter:description": this.Description,
+			"twitter:card": "summary_large_image",
 			"twitter:title": this.Title,
-			"twitter:image": this.Thumbnail.Link
+			"twitter:image": this.Thumbnail.Link,
+			"twitter:description": this.Description,
 		}
 
+		// @todo Add extended support for other types
+
 		return OGP_BuildTags(Graph)
+	}
+
+	BuildTags(EmbedLink) {
+		return this.BuildOGP(EmbedLink) + `<meta name="theme-color" content="${this.ThemeColor}" data-react-helmet="true">`
 	}
 }
 

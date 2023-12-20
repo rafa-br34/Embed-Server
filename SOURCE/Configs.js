@@ -12,8 +12,8 @@ function MergeObject(A, B, Override) {
 }
 
 let c_Defaults = {
-	Port: 621,
-	SSL: { Key: "Server.key", Certificate: "Server.crt" },
+	Port: { HTTP: 621, HTTPS: 926 },
+	SSL: { Key: "private.key", Certificate: "certificate.crt" },
 
 	Base: "../DATA/",
 	
