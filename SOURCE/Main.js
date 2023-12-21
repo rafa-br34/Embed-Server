@@ -15,13 +15,46 @@ import m_Embeds from "./Embeds.js"
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+function RelativeFile(...Arguments) { return path.join(__dirname, ...Arguments) }
 
+
+// Constants
 const c_Logger = new m_Logging.Logger()
 
 // Globals
+let g_IndexEmbed = new m_Embeds.Embed({
+	ThemeColor: "#FFFFFF",
+	Author: {
+		Name: "GitHub Repository",
+		Link: "https://github.com/rafa-br34/Embed-Server"
+	},
+
+	Title: "Open Source Embed Server",
+
+	Type: {
+		"oEmbed": "photo",
+		"OGP": ""
+	}
+})
+let g_Templates = {}
 let g_Config = m_Configs.Loaded()
 
-function RelativeFile(...Arguments) { return path.join(__dirname, ...Arguments) }
+function GetIndexEmbed() {
+	let Image = {
+		Height: 600,
+		Width: 1200,
+		Link: `https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`
+	}
+	g_IndexEmbed.Thumbnail = Image
+	g_IndexEmbed.Content = Image
+
+	g_IndexEmbed.Provider = {
+		Name: `(GPLv3 License) Copyright © ${(new Date()).getFullYear()} rafa_br34`,
+		Link: "https://github.com/rafa-br34"
+	}
+	return g_IndexEmbed
+}
+GetIndexEmbed()
 
 
 async function SetupFiles() {
@@ -33,7 +66,6 @@ async function SetupFiles() {
 
 	fs.mkdirSync(ServingFolder = RelativeFile(Base, g_Config.Serving.Folder), { recursive: true })
 	fs.mkdirSync(LogsFolder = RelativeFile(Base, g_Config.Logging), { recursive: true })
-
 	
 	let LogFileName = `T${Date.now()}-P${process.pid}.log`
 	let LogFilePath = RelativeFile(Base, g_Config.Logging, LogFileName)
@@ -43,8 +75,32 @@ async function SetupFiles() {
 		c_Logger.OutputStreams.push(new m_Logging.Stream(Handle, -1))
 		c_Logger.Info(`Acquired handle for log file "${LogFilePath}"`)
 	})
+
+	// @todo A profiler could be useful
+	const CachingStart = Date.now()
+
+	g_Templates.Index = fs.readFileSync(RelativeFile("Templates/IndexTemplate.html"), "utf-8")
+	g_Templates.Head = fs.readFileSync(RelativeFile("Templates/HeadTemplate.html"), "utf-8")
 	
-	return {LogsFolder, ServingFolder, LogFile}
+	const TimeTaken = Date.now() - CachingStart
+	c_Logger.Info(`Template caching took ${TimeTaken}ms (~${TimeTaken / Object.keys(g_Templates).length}ms per template)`)
+
+	return { LogsFolder, ServingFolder, LogFile }
+}
+
+
+function BuildEmbedHead(Template, Embed, oEmbedLink, Title, Description) {
+	return squirrelly.render(
+		Template,
+		{
+			Description,
+			Title,
+
+			oEmbedLink: oEmbedLink,
+			MetaTags: Embed.BuildTags()
+		},
+		{ autoEscape: false }
+	)
 }
 
 function HostApplication(Application) {
@@ -59,50 +115,25 @@ function HostApplication(Application) {
 
 	if (SSLPath.find((Path) => !fs.existsSync(Path))) {
 		c_Logger.Warn("No SSL certificate and/or key found. HTTPS will not be enabled.")
-		return
+		return false
 	}
 
 	https.createServer({ key: fs.readFileSync(SSLPath[0]), cert: fs.readFileSync(SSLPath[1]) }, Application)
 		.listen(Port.HTTPS, () => { c_Logger.Info(`HTTPS: Listening on port ${Port.HTTPS}`) })
+	
+	return true
 }
+
 
 async function Main() {
 	const Application = express()
 	
-	c_Logger.Info("Loading configs...")
+	c_Logger.Debug("Loading configs...")
 	g_Config = m_Configs.LoadConfig(RelativeFile(g_Config.Base, g_Config.Config))
 	c_Logger.Output(`Loaded config:\n${JSON.stringify(g_Config, null, 3)}\n`)
 
-	c_Logger.Info("Setting up files...")
+	c_Logger.Debug("Setting up files...")
 	await SetupFiles()
-
-	let IndexEmbed = new m_Embeds.Embed({
-		Thumbnail: {
-			Height: 600,
-			Width: 1200,
-			Link: `https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`
-		},
-		Content: {
-			Height: 600,
-			Width: 1200,
-			Link: `https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`
-		},
-		Provider: {
-			Name: `(MIT License) Copyright © ${(new Date()).getFullYear()} rafa_br34`,
-			Link: "https://github.com/rafa-br34"
-		},
-		Author: {
-			Name: "GitHub Repository",
-			Link: "https://github.com/rafa-br34/Embed-Server"
-		},
-
-		Title: "Open Source Embed Server",
-
-		Type: {
-			"oEmbed": "photo",
-			"OGP": ""
-		}
-	})
 
 	// @note This should always be the first middleware
 	Application.use((Request, Result, NextHandler) => {
@@ -123,42 +154,27 @@ async function Main() {
 	
 	// API
 	Application.get("/api/oembed", (Request, Response) => {
-		Response.json(IndexEmbed.Build_oEmbed())
-		/*
-			{
-				"type":"rich",
-				"version":"1.0",
+		let ID = Request.query.id
 
-				"title":"example title",
-				"author_name":"example author",
-				"author_url":"https://example-author-url.com",
-				"provider_name":`(MIT License) Copyright © ${(new Date()).getFullYear()} rafa_br34`,
-				"provider_url":"https://github.com/rafa-br34",
-				"thumbnail_height":600,"thumbnail_width":1200,
-				"thumbnail_url":`https://opengraph.githubassets.com/*${Date.now()}/rafa-br34/Embed-Server`,
-
-				"height":113,"width":200,
-				"html":"<p>example html</p>"
-			}
-		)
-		//*/
+		if (!ID) {
+			Response.json(GetIndexEmbed().Build_oEmbed())
+		}
+		else {
+			c_Logger.Debug(`Fetching oEmbed for ${ID}`)
+		}
 	})
 	
 	// Static
 	Application.get("/", (Request, Response) => {
-		let Result = squirrelly.render(
-			fs.readFileSync(RelativeFile("Templates/HeadTemplate.html"), "utf-8"),
-			{
-				oEmbedLink: `http://${Request.headers.host}/api/oembed?id=${"Identifier"}`,
-
-				Description: "Rendered description",
-				Title: "Rendered title",
-				MetaTags: IndexEmbed.BuildOGP()
-			},
-			{ autoEscape: false }
+		let Head = BuildEmbedHead(
+			g_Templates.Head,
+			GetIndexEmbed(),
+			`http://${Request.headers.host}/api/oembed`,
+			"Embed Server",
+			"Embed Server is a modern, compact, and open source file sharing and hosting service"
 		)
-		Response.send(`<!DOCTYPE html><html>${Result}<body>test</body></html>`)
-		//Response.sendFile(RelativeFile("Static/Index.html"))
+		
+		Response.send(`<!DOCTYPE html><html>${Head}<body>test</body></html>`)
 	})
 	Application.use(express.static(RelativeFile("Static/")))
 	Application.get("/*", (_Request, Response) => { Response.redirect("/") })

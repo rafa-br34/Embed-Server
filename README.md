@@ -18,5 +18,5 @@ Use `nano DATA/Config.json` or `notepad DATA/Config.json` to edit configs.
 Some social media services don't download media from domains without SSL (which would render this project useless).
 For instance, Discord's proxy only requests video sources from HTTPS servers.
 
-To set up SSL you will need to first get the certificate, for that you can use something like [Let's Encrypt](https://letsencrypt.org/) or [ZeroSSL](https://zerossl.com/).
+To set up SSL you will need to first get the certificate, for that you can use something like [Let's Encrypt](https://letsencrypt.org/) .
 After getting the certificate you can place `private.key` and `certificate.crt` inside the `DATA` directory.

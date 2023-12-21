@@ -127,7 +127,8 @@ class Embed {
 	}
 
 	BuildTags(EmbedLink) {
-		return this.BuildOGP(EmbedLink) + `<meta name="theme-color" content="${this.ThemeColor}" data-react-helmet="true">`
+		return this.BuildOGP(EmbedLink)
+		+ (this.ThemeColor && `<meta name="theme-color" content="${this.ThemeColor}" data-react-helmet="true">`)
 	}
 }
 
