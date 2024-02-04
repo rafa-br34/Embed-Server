@@ -12,6 +12,10 @@ function MergeObject(A, B, Override) {
 }
 
 let c_Defaults = {
+	Database: {
+		Host: { Address: "localhost", Port: 27017 },
+		User: { Name: "admin", Password: "yourdatabasepassword", Database: "admin" }
+	},
 	Port: { HTTP: 621, HTTPS: 926 },
 	SSL: { Key: "private.key", Certificate: "certificate.crt" },
 
@@ -39,7 +43,7 @@ function LoadConfig(File, Defaults=c_Defaults) {
 }
 
 function SaveConfig(File, Data=g_Loaded) {
-	fs.writeFileSync(File, JSON.stringify(Data))
+	fs.writeFileSync(File, JSON.stringify(Data, null, 3))
 }
 
 function Loaded() {

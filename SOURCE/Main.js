@@ -8,6 +8,7 @@ import path from "path"
 import url from "url"
 import fs from "fs"
 
+import m_StatusMonitor from "./StatusMonitor.js"
 import m_Configs from "./Configs.js"
 import m_Logging from "./Logging.js"
 import m_Embeds from "./Embeds.js"
@@ -38,6 +39,7 @@ let g_IndexEmbed = new m_Embeds.Embed({
 })
 let g_Templates = {}
 let g_Config = m_Configs.Loaded()
+let g_Status = new m_StatusMonitor.StatusMonitor()
 
 function GetIndexEmbed() {
 	let Image = {
@@ -108,20 +110,20 @@ function HostApplication(Application) {
 	let Port = g_Config.Port
 	let SSL = g_Config.SSL
 
-	http.createServer(Application)
+	let HTTP = http.createServer(Application)
 		.listen(Port.HTTP, () => { c_Logger.Info(`HTTP: Listening on port ${Port.HTTP}`) })
 
 	let SSLPath = [ RelativeFile(Base, SSL.Key), RelativeFile(Base, SSL.Certificate) ]
 
 	if (SSLPath.find((Path) => !fs.existsSync(Path))) {
 		c_Logger.Warn("No SSL certificate and/or key found. HTTPS will not be enabled.")
-		return false
+		return { HTTP }
 	}
 
-	https.createServer({ key: fs.readFileSync(SSLPath[0]), cert: fs.readFileSync(SSLPath[1]) }, Application)
+	let HTTPS = https.createServer({ key: fs.readFileSync(SSLPath[0]), cert: fs.readFileSync(SSLPath[1]) }, Application)
 		.listen(Port.HTTPS, () => { c_Logger.Info(`HTTPS: Listening on port ${Port.HTTPS}`) })
 	
-	return true
+	return { HTTP, HTTPS }
 }
 
 
@@ -152,7 +154,12 @@ async function Main() {
 		c_Logger.Log(`Serving raw media "${Request.path}"`)
 	})
 	
+
 	// API
+	Application.get("/api/status", (Request, Response) => {
+
+	})
+
 	Application.get("/api/oembed", (Request, Response) => {
 		let ID = Request.query.id
 
@@ -164,6 +171,7 @@ async function Main() {
 		}
 	})
 	
+
 	// Static
 	Application.get("/", (Request, Response) => {
 		let Head = BuildEmbedHead(
@@ -189,7 +197,9 @@ async function Main() {
 		NextHandler()
 	})
 	
-	HostApplication(Application)
+	let { HTTP, HTTPS } = HostApplication(Application)
+
+	
 
 	process.on("SIGINT", () => {
 		c_Logger.Warn("SIGINT Received, terminating...")
